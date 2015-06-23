@@ -27,6 +27,22 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
         }
 
         [Fact]
+        public override void CreateTableOperation()
+        {
+            base.CreateTableOperation();
+
+            Assert.Equal(
+                "CREATE TABLE \"People\" (" + EOL +
+                "    \"Id\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," + EOL +
+                "    \"EmployerId\" int," + EOL +
+                "    \"SSN\" char(11)," + EOL +
+                "    UNIQUE (\"SSN\")," + EOL +
+                "    FOREIGN KEY (\"EmployerId\") REFERENCES \"Companies\"" + EOL +
+                ");" + EOL,
+                Sql);
+        }
+
+        [Fact]
         public void CreateSchemaOperation_not_supported()
         {
             var ex = Assert.Throws<NotSupportedException>(() => Generate(new CreateSchemaOperation()));
@@ -45,33 +61,6 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
         {
             var ex = Assert.Throws<NotSupportedException>(() => Generate(new RestartSequenceOperation()));
             Assert.Equal(Strings.SequencesNotSupported, ex.Message);
-        }
-
-        public override void AddColumnOperation_with_defaultValue()
-        {
-            base.AddColumnOperation_with_defaultValue();
-
-            Assert.Equal(
-                @"ALTER TABLE ""People"" ADD ""Name"" varchar(30) NOT NULL DEFAULT 'John Doe';" + EOL,
-                Sql);
-        }
-
-        public override void AddColumnOperation_with_defaultValueSql()
-        {
-            // Override base test because CURRENT_TIMESTAMP is not valid for AddColumn
-            Generate(
-                new AddColumnOperation
-                {
-                    Table = "People",
-                    Name = "Age",
-                    Type = "int",
-                    IsNullable = true,
-                    DefaultExpression = "10"
-                });
-
-            Assert.Equal(
-                @"ALTER TABLE ""People"" ADD ""Age"" int DEFAULT (10);" + EOL,
-                Sql);
         }
 
         public override void AddForeignKeyOperation_with_name()

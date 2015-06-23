@@ -87,6 +87,25 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
                 .Append(_sql.DelimitIdentifier(operation.OldTable));
         }
 
+        public override void Generate(CreateTableOperation operation, IModel model, SqlBatchBuilder builder)
+        {
+            // Lifts a primary key definition into the typename.
+            // This handles the quirks of creating integer primary keys using autoincrement, not default rowid behavior.
+            if (operation.PrimaryKey?.Columns.Length == 1)
+            {
+                var column = operation.Columns?.FirstOrDefault(c => c.Name == operation.PrimaryKey.Columns[0]);
+                if (column != null
+                    && (column.Type.Equals("INTEGER", StringComparison.InvariantCultureIgnoreCase)
+                        || column.Type.Equals("INT", StringComparison.InvariantCultureIgnoreCase)))
+                {
+                    column.Type = "INTEGER PRIMARY KEY AUTOINCREMENT";
+                    operation.PrimaryKey = null;
+                }
+            }
+
+            base.Generate(operation, model, builder);
+        }
+
         #region Invalid migration operations
 
         // These operations can be accomplished instead with a table-rebuild
