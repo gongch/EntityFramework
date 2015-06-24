@@ -9,6 +9,7 @@ using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Relational;
 using Microsoft.Data.Entity.Relational.Migrations.Operations;
 using Microsoft.Data.Entity.Relational.Migrations.Sql;
+using Microsoft.Data.Entity.Sqlite.Metadata;
 using Microsoft.Data.Entity.Utilities;
 
 namespace Microsoft.Data.Entity.Sqlite.Migrations
@@ -91,15 +92,28 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
         {
             // Lifts a primary key definition into the typename.
             // This handles the quirks of creating integer primary keys using autoincrement, not default rowid behavior.
-            if (operation.PrimaryKey?.Columns.Length == 1)
+            const string inlinePrimaryKey = SqliteAnnotationNames.Prefix + SqliteAnnotationNames.InlinePrimaryKey;
+
+            var inlinePrimaryKeyAnnotation = operation.Columns
+                .FirstOrDefault(c => c.FindAnnotation(inlinePrimaryKey) != null)?[inlinePrimaryKey];
+
+            if (inlinePrimaryKeyAnnotation != null
+                && (bool)inlinePrimaryKeyAnnotation)
             {
                 var column = operation.Columns?.FirstOrDefault(c => c.Name == operation.PrimaryKey.Columns[0]);
-                if (column != null
-                    && (column.Type.Equals("INTEGER", StringComparison.InvariantCultureIgnoreCase)
-                        || column.Type.Equals("INT", StringComparison.InvariantCultureIgnoreCase)))
+                if (column != null)
                 {
-                    column.Type = "INTEGER PRIMARY KEY AUTOINCREMENT";
+                    column.Type += " PRIMARY KEY";
+
+                    var autoIncrement = operation.PrimaryKey?.FindAnnotation(SqliteAnnotationNames.Prefix + SqliteAnnotationNames.Autoincrement)?.Value;
+
                     operation.PrimaryKey = null;
+
+                    if (autoIncrement != null
+                        && (bool)autoIncrement)
+                    {
+                        column.Type += " AUTOINCREMENT";
+                    }
                 }
             }
 

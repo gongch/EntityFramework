@@ -4,7 +4,6 @@
 using JetBrains.Annotations;
 using Microsoft.Data.Entity.Infrastructure;
 using Microsoft.Data.Entity.Relational;
-using Microsoft.Data.Entity.Relational.Migrations;
 using Microsoft.Data.Entity.Sqlite;
 using Microsoft.Data.Entity.Sqlite.Metadata;
 using Microsoft.Data.Entity.Sqlite.Migrations;
@@ -29,6 +28,7 @@ namespace Microsoft.Framework.DependencyInjection
                     .AddSingleton<SqliteMetadataExtensionProvider>()
                     .AddSingleton<SqliteTypeMapper>()
                     .AddSingleton<SqliteModelSource>()
+                    .AddScoped<SqliteMigrationAnnotationProvider>()
                     .AddScoped<SqliteModificationCommandBatchFactory>()
                     .AddScoped<SqliteOperationTransformer>()
                     .AddScoped<SqliteDatabaseProviderServices>()

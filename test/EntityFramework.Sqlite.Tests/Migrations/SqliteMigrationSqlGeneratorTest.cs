@@ -4,6 +4,7 @@
 using System;
 using Microsoft.Data.Entity.Relational.Migrations.Operations;
 using Microsoft.Data.Entity.Relational.Migrations.Sql;
+using Microsoft.Data.Entity.Sqlite.Metadata;
 using Xunit;
 
 namespace Microsoft.Data.Entity.Sqlite.Migrations
@@ -26,14 +27,76 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
             Assert.Equal("INSERT INTO \"RebuiltTable\" (\"col1\", \"col2\")" + EOL + "SELECT \"col1\", \"col2\" FROM \"OldTable\";" + EOL, Sql);
         }
 
-        [Fact]
         public override void CreateTableOperation()
         {
-            base.CreateTableOperation();
+            // replaced with test below
+        }
+
+        [Theory]
+        [InlineData("INTEGER", true)]
+        [InlineData("TEXT", false)]
+        public void CreateTableOperation(string sqlType, bool autoincrement)
+        {
+            var addIdOperation = new AddColumnOperation
+            {
+                Name = "Id",
+                Type = sqlType,
+                IsNullable = false,
+            };
+            addIdOperation.AddAnnotation(SqliteAnnotationNames.Prefix + SqliteAnnotationNames.InlinePrimaryKey, true);
+
+            var pkOperation = new AddPrimaryKeyOperation
+            {
+                Columns = new[] { "Id" }
+            };
+            if (autoincrement)
+            {
+                pkOperation.AddAnnotation(SqliteAnnotationNames.Prefix + SqliteAnnotationNames.Autoincrement, true);
+            }
+
+            Generate(
+                 new CreateTableOperation
+                 {
+                     Name = "People",
+                     Columns =
+                     {
+                        addIdOperation,
+                        new AddColumnOperation
+                        {
+                            Name = "EmployerId",
+                            Type = "int",
+                            IsNullable = true
+                        },
+                         new AddColumnOperation
+                        {
+                            Name = "SSN",
+                            Type = "char(11)",
+                            IsNullable = true
+                        }
+                     },
+                     PrimaryKey = pkOperation,
+                     UniqueConstraints =
+                     {
+                        new AddUniqueConstraintOperation
+                        {
+                            Columns = new[] { "SSN" }
+                        }
+                     },
+                     ForeignKeys =
+                     {
+                        new AddForeignKeyOperation
+                        {
+                            Columns = new[] { "EmployerId" },
+                            ReferencedTable = "Companies"
+                        }
+                     }
+                 });
 
             Assert.Equal(
                 "CREATE TABLE \"People\" (" + EOL +
-                "    \"Id\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," + EOL +
+                "    \"Id\" " + sqlType +" PRIMARY KEY" + 
+                (sqlType == "INTEGER" ? " AUTOINCREMENT": "") +
+                " NOT NULL," + EOL +
                 "    \"EmployerId\" int," + EOL +
                 "    \"SSN\" char(11)," + EOL +
                 "    UNIQUE (\"SSN\")," + EOL +

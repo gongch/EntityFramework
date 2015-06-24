@@ -86,6 +86,7 @@
     <Compile Include="Metadata\SqliteModelExtensions.cs" />
     <Compile Include="Metadata\SqlitePropertyExtensions.cs" />
     <Compile Include="Migrations\SqliteHistoryRepository.cs" />
+    <Compile Include="Migrations\SqliteMigrationAnnotationProvider.cs" />
     <Compile Include="Migrations\SqliteMigrationSqlGenerator.cs" />
     <Compile Include="Migrations\SqliteOperationTransformer.cs" />
     <Compile Include="Migrations\MoveDataOperation.cs" />
