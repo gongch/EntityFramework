@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using Microsoft.Data.Entity.Infrastructure;
 using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Relational;
 using Microsoft.Data.Entity.Relational.Migrations.Operations;
@@ -92,32 +93,62 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
         {
             // Lifts a primary key definition into the typename.
             // This handles the quirks of creating integer primary keys using autoincrement, not default rowid behavior.
-            const string inlinePrimaryKey = SqliteAnnotationNames.Prefix + SqliteAnnotationNames.InlinePrimaryKey;
-
-            var inlinePrimaryKeyAnnotation = operation.Columns
-                .FirstOrDefault(c => c.FindAnnotation(inlinePrimaryKey) != null)?[inlinePrimaryKey];
-
-            if (inlinePrimaryKeyAnnotation != null
-                && (bool)inlinePrimaryKeyAnnotation)
+            if (operation.PrimaryKey?.Columns.Length == 1)
             {
-                var column = operation.Columns?.FirstOrDefault(c => c.Name == operation.PrimaryKey.Columns[0]);
-                if (column != null)
+                var columnOp = operation.Columns?.FirstOrDefault(o => o.Name == operation.PrimaryKey.Columns[0]);
+                if (columnOp != null)
                 {
-                    column.Type += " PRIMARY KEY";
-
-                    var autoIncrement = operation.PrimaryKey?.FindAnnotation(SqliteAnnotationNames.Prefix + SqliteAnnotationNames.Autoincrement)?.Value;
-
+                    columnOp.AddAnnotation(SqliteAnnotationNames.Prefix + SqliteAnnotationNames.InlinePrimaryKey, true);
                     operation.PrimaryKey = null;
-
-                    if (autoIncrement != null
-                        && (bool)autoIncrement)
-                    {
-                        column.Type += " AUTOINCREMENT";
-                    }
                 }
             }
 
             base.Generate(operation, model, builder);
+        }
+
+        public override void ColumnDefinition(string schema, string table, string name, string type, bool nullable, object defaultValue, string defaultExpression, IAnnotatable annotatable, IModel model, SqlBatchBuilder builder)
+        {
+            Check.NotEmpty(name, nameof(name));
+            Check.NotEmpty(type, nameof(type));
+            Check.NotNull(annotatable, nameof(annotatable));
+            Check.NotNull(builder, nameof(builder));
+
+            builder
+                .Append(_sql.DelimitIdentifier(name))
+                .Append(" ")
+                .Append(type);
+
+            var columnAnnotation = annotatable as Annotatable;
+
+            var inlinePk = columnAnnotation?.FindAnnotation(SqliteAnnotationNames.Prefix + SqliteAnnotationNames.InlinePrimaryKey);
+            if (inlinePk != null && (bool)inlinePk.Value)
+            {
+                builder.Append(" PRIMARY KEY");
+                var autoincrement = columnAnnotation.FindAnnotation(SqliteAnnotationNames.Prefix + SqliteAnnotationNames.Autoincrement);
+                if (autoincrement != null && (bool)autoincrement.Value)
+                {
+                    builder.Append(" AUTOINCREMENT");
+                }
+            }
+
+            if (!nullable)
+            {
+                builder.Append(" NOT NULL");
+            }
+
+            if (defaultExpression != null)
+            {
+                builder
+                    .Append(" DEFAULT (")
+                    .Append(defaultExpression)
+                    .Append(")");
+            }
+            else if (defaultValue != null)
+            {
+                builder
+                    .Append(" DEFAULT ")
+                    .Append(_sql.GenerateLiteral((dynamic)defaultValue));
+            }
         }
 
         #region Invalid migration operations

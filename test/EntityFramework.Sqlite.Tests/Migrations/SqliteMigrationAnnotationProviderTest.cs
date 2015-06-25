@@ -2,6 +2,9 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.Data.Entity.Infrastructure;
 using Microsoft.Data.Entity.Metadata;
 using Microsoft.Data.Entity.Metadata.ModelConventions;
 using Microsoft.Data.Entity.Sqlite.Metadata;
@@ -13,6 +16,8 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
     {
         private readonly ModelBuilder _modelBuilder;
         private readonly SqliteMigrationAnnotationProvider _provider;
+
+        private readonly Annotation _autoincrement = new Annotation(SqliteAnnotationNames.Prefix + SqliteAnnotationNames.Autoincrement, true);
 
         public SqliteMigrationAnnotationProviderTest()
         {
@@ -40,20 +45,16 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
                     b.Property(keyType, "PK");
                     b.Key("PK");
                 });
-            var key = _modelBuilder.Model.GetEntityType(typeof(Entity)).GetPrimaryKey();
+            var property = _modelBuilder.Model.GetEntityType(typeof(Entity)).GetProperty("PK");
 
-            var annotation = _provider.For(key);
+            var annotation = _provider.For(property).ToList();
             if (addsAnnotation)
             {
-                Assert.Collection(annotation, a =>
-                    {
-                        Assert.Equal(a.Name, SqliteAnnotationNames.Prefix + SqliteAnnotationNames.Autoincrement);
-                        Assert.True((bool)a.Value);
-                    });
+                Assert.Contains(annotation, a=>a.Name==_autoincrement.Name && (bool)a.Value);
             }
             else
             {
-                Assert.Collection(annotation);
+                Assert.DoesNotContain(annotation, a=>a.Name==_autoincrement.Name && (bool)a.Value);
             }
         }
 
@@ -68,48 +69,17 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
                     b.Property(e => e.StringId).SqliteColumnType(columnType);
                     b.Key(e => e.StringId);
                 });
-            var key = _modelBuilder.Model.GetEntityType(typeof(Entity)).GetPrimaryKey();
+            var property = _modelBuilder.Model.GetEntityType(typeof(Entity)).GetProperty("StringId");
 
-            var annotation = _provider.For(key);
+            var annotation = _provider.For(property);
             if (addsAnnotation)
             {
-                Assert.Collection(annotation, a =>
-                {
-                    Assert.Equal(a.Name, SqliteAnnotationNames.Prefix + SqliteAnnotationNames.Autoincrement);
-                    Assert.True((bool)a.Value);
-                });
+                Assert.Contains(annotation, a=>a.Name==_autoincrement.Name && (bool)a.Value);
             }
             else
             {
-                Assert.Collection(annotation);
+                Assert.DoesNotContain(annotation, a=>a.Name==_autoincrement.Name && (bool)a.Value);
             }
-        }
-
-        [Fact]
-        public void Adds_InlinePrimaryKey_annotation()
-        {
-            _modelBuilder.Entity<Entity>().Key(e => e.Id);
-            var property = _modelBuilder.Model.GetEntityType(typeof(Entity)).GetProperty("Id");
-
-            var annotation = _provider.For(property);
-
-            Assert.Collection(annotation, a =>
-                {
-                    Assert.Equal(a.Name, SqliteAnnotationNames.Prefix + SqliteAnnotationNames.InlinePrimaryKey);
-                    Assert.True((bool)a.Value);
-                });
-        }
-
-        [Fact]
-        public void InlinePrimaryKey_not_added()
-        {
-            _modelBuilder.Entity<Entity>().Key(e => new { e.Id, e.StringId });
-
-            var property = _modelBuilder.Model.GetEntityType(typeof(Entity)).GetProperty("Id");
-
-            var annotation = _provider.For(property);
-
-            Assert.Collection(annotation);
         }
 
         private class Entity

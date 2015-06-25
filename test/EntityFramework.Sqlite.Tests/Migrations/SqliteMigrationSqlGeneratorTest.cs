@@ -37,21 +37,15 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
         [InlineData("TEXT", false)]
         public void CreateTableOperation(string sqlType, bool autoincrement)
         {
-            var addIdOperation = new AddColumnOperation
+            var addIdColumn = new AddColumnOperation
             {
                 Name = "Id",
                 Type = sqlType,
                 IsNullable = false,
             };
-            addIdOperation.AddAnnotation(SqliteAnnotationNames.Prefix + SqliteAnnotationNames.InlinePrimaryKey, true);
-
-            var pkOperation = new AddPrimaryKeyOperation
-            {
-                Columns = new[] { "Id" }
-            };
             if (autoincrement)
             {
-                pkOperation.AddAnnotation(SqliteAnnotationNames.Prefix + SqliteAnnotationNames.Autoincrement, true);
+                addIdColumn.AddAnnotation(SqliteAnnotationNames.Prefix + SqliteAnnotationNames.Autoincrement, true);
             }
 
             Generate(
@@ -60,7 +54,7 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
                      Name = "People",
                      Columns =
                      {
-                        addIdOperation,
+                        addIdColumn,
                         new AddColumnOperation
                         {
                             Name = "EmployerId",
@@ -74,7 +68,10 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
                             IsNullable = true
                         }
                      },
-                     PrimaryKey = pkOperation,
+                     PrimaryKey = new AddPrimaryKeyOperation
+                     {
+                         Columns = new[] { "Id" }
+                     },
                      UniqueConstraints =
                      {
                         new AddUniqueConstraintOperation
@@ -94,8 +91,8 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
 
             Assert.Equal(
                 "CREATE TABLE \"People\" (" + EOL +
-                "    \"Id\" " + sqlType +" PRIMARY KEY" + 
-                (sqlType == "INTEGER" ? " AUTOINCREMENT": "") +
+                "    \"Id\" " + sqlType + " PRIMARY KEY" +
+                (sqlType == "INTEGER" ? " AUTOINCREMENT" : "") +
                 " NOT NULL," + EOL +
                 "    \"EmployerId\" int," + EOL +
                 "    \"SSN\" char(11)," + EOL +
@@ -110,6 +107,33 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
         {
             var ex = Assert.Throws<NotSupportedException>(() => Generate(new CreateSchemaOperation()));
             Assert.Equal(Strings.SchemasNotSupported, ex.Message);
+        }
+
+        public override void AddColumnOperation_with_defaultValue()
+        {
+            base.AddColumnOperation_with_defaultValue();
+
+            Assert.Equal(
+                @"ALTER TABLE ""People"" ADD ""Name"" varchar(30) NOT NULL DEFAULT 'John Doe';" + EOL,
+                Sql);
+        }
+
+        public override void AddColumnOperation_with_defaultValueSql()
+        {
+            // Override base test because CURRENT_TIMESTAMP is not valid for AddColumn
+            Generate(
+                new AddColumnOperation
+                {
+                    Table = "People",
+                    Name = "Age",
+                    Type = "int",
+                    IsNullable = true,
+                    DefaultExpression = "10"
+                });
+
+            Assert.Equal(
+                @"ALTER TABLE ""People"" ADD ""Age"" int DEFAULT (10);" + EOL,
+                Sql);
         }
 
         [Fact]

@@ -24,16 +24,18 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
             _typeMapper = typeMapper;
         }
 
-        public override IEnumerable<IAnnotation> For(IKey key)
+        public override IEnumerable<IAnnotation> For(IProperty property)
         {
-            if (key.IsPrimaryKey()
-                && key.Properties.Count == 1)
+            var pk = property.EntityType.GetPrimaryKey()?.Properties;
+            if (pk != null
+                && pk.Count == 1
+                && pk[0] == property)
             {
-                var clrType = key.Properties[0].ClrType;
+                var clrType = property.ClrType;
                 string columnType;
                 try
                 {
-                    columnType = key.Properties[0].Sqlite().ColumnType ?? _typeMapper.GetDefaultMapping(key.Properties[0].ClrType).DefaultTypeName;
+                    columnType = property.Sqlite().ColumnType ?? _typeMapper.GetDefaultMapping(property.ClrType).DefaultTypeName;
                 }
                 catch (NotSupportedException)
                 {
@@ -49,17 +51,6 @@ namespace Microsoft.Data.Entity.Sqlite.Migrations
                     yield return new Annotation(SqliteAnnotationNames.Prefix + SqliteAnnotationNames.Autoincrement, true);
                 }
             }
-            base.For(key);
-        }
-
-        public override IEnumerable<IAnnotation> For(IProperty property)
-        {
-            if (property.IsPrimaryKey()
-                && property.EntityType.GetPrimaryKey().Properties.Count == 1)
-            {
-                yield return new Annotation(SqliteAnnotationNames.Prefix + SqliteAnnotationNames.InlinePrimaryKey, true);
-            }
-            base.For(property);
         }
     }
 }
