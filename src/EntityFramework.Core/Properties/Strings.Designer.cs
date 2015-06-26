@@ -1028,6 +1028,14 @@ namespace Microsoft.Data.Entity.Internal
             return string.Format(CultureInfo.CurrentCulture, GetString("CannotBeNullablePK", "property", "entity"), property, entity);
         }
 
+        /// <summary>
+        /// Entity type '{entityType}' has composite primary key defined with data annotations. To set composite primary key, use fluent API.
+        /// </summary>
+        public static string CompositePKWithDataAnnotation([CanBeNull] object entityType)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("CompositePKWithDataAnnotation", "entityType"), entityType);
+        }
+
         private static string GetString(string name, params string[] formatterNames)
         {
             var value = _resourceManager.GetString(name);

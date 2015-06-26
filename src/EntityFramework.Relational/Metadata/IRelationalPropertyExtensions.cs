@@ -6,6 +6,7 @@ namespace Microsoft.Data.Entity.Relational.Metadata
     public interface IRelationalPropertyExtensions
     {
         string Column { get; }
+        int? ColumnOrder { get; }
         string ColumnType { get; }
         string DefaultExpression { get; }
         object DefaultValue { get; }

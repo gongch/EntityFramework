@@ -27,7 +27,7 @@ namespace Microsoft.Data.Entity
     /// </summary>
     public class ModelBuilder : IAccessor<InternalModelBuilder>
     {
-        private readonly InternalModelBuilder _builder;
+        private InternalModelBuilder _builder;
 
         // TODO: Configure property facets, foreign keys & navigation properties
         // Issue #213
@@ -56,6 +56,13 @@ namespace Microsoft.Data.Entity
             Check.NotNull(conventions, nameof(conventions));
 
             _builder = new InternalModelBuilder(model, conventions).Initialize();
+        }
+
+        public virtual ModelBuilder Validate()
+        {
+            Builder.Validate();
+
+            return this;
         }
 
         /// <summary>

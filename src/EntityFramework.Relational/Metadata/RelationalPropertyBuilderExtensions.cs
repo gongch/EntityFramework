@@ -28,9 +28,25 @@ namespace Microsoft.Data.Entity
             [CanBeNull] string columnName)
             => (PropertyBuilder<TProperty>)Column((PropertyBuilder)propertyBuilder, columnName);
 
-        public static PropertyBuilder ColumnType(
+        public static PropertyBuilder ColumnOrder(
             [NotNull] this PropertyBuilder propertyBuilder,
-            [CanBeNull] string columnType)
+            [CanBeNull] int? columnOrder)
+        {
+            Check.NotNull(propertyBuilder, nameof(propertyBuilder));
+
+            propertyBuilder.Metadata.Relational().ColumnOrder = columnOrder;
+
+            return propertyBuilder;
+        }
+
+        public static PropertyBuilder<TProperty> ColumnOrder<TProperty>(
+            [NotNull] this PropertyBuilder<TProperty> propertyBuilder,
+            [CanBeNull] int? columnOrder)
+            => (PropertyBuilder<TProperty>)ColumnOrder((PropertyBuilder)propertyBuilder, columnOrder);
+
+        public static PropertyBuilder ColumnType(
+             [NotNull] this PropertyBuilder propertyBuilder,
+             [CanBeNull] string columnType)
         {
             Check.NotNull(propertyBuilder, nameof(propertyBuilder));
             Check.NullButNotEmpty(columnType, nameof(columnType));
