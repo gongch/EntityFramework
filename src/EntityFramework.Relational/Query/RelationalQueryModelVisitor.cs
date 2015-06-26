@@ -118,11 +118,47 @@ namespace Microsoft.Data.Entity.Relational.Query
             }
         }
 
+        protected override Dictionary<IncludeSpecification, List<int>> BuildNavigationIndexMap(List<IncludeSpecification> includeSpecifications)
+        {
+            var openedReaderCount = 0;
+            var navigationIndexMap = new Dictionary<IncludeSpecification, List<int>>();
+            foreach (var includeSpecification in includeSpecifications
+                .OrderBy(a => a.NavigationPath.First().PointsToPrincipal()).Reverse())
+            {
+                var indeces = new List<int>();
+                var openedNewReader = false;
+                foreach (var navigation in includeSpecification.NavigationPath)
+                {
+                    if (navigation.IsCollection())
+                    {
+                        openedNewReader = true;
+                        openedReaderCount++;
+                    }
+                    else
+                    {
+                        if (openedNewReader)
+                        {
+                            indeces.Add(openedReaderCount);
+                        }
+                        else
+                        {
+                            indeces.Add(0);
+                        }
+                    }
+                }
+
+                navigationIndexMap.Add(includeSpecification, indeces);
+            }
+
+            return navigationIndexMap;
+        }
+
         protected override void IncludeNavigations(
             IQuerySource querySource,
             Type resultType,
             LambdaExpression accessorLambda,
             IReadOnlyList<INavigation> navigationPath,
+            List<int> queryIndeces,
             bool querySourceRequiresTracking)
         {
             Check.NotNull(querySource, nameof(querySource));
@@ -135,6 +171,7 @@ namespace Microsoft.Data.Entity.Relational.Query
                     querySource,
                     navigationPath,
                     QueryCompilationContext,
+                    queryIndeces,
                     querySourceRequiresTracking)
                     .Visit(Expression);
         }

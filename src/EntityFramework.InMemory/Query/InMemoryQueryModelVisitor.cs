@@ -29,11 +29,17 @@ namespace Microsoft.Data.Entity.InMemory.Query
             return new InMemoryEntityQueryableExpressionVisitor(this, querySource);
         }
 
+        protected override Dictionary<IncludeSpecification, List<int>> BuildNavigationIndexMap(List<IncludeSpecification> includeSpecifications)
+        {
+            return null;
+        }
+
         protected override void IncludeNavigations(
             IQuerySource querySource,
             Type resultType,
             LambdaExpression accessorLambda,
             IReadOnlyList<INavigation> navigationPath,
+            List<int> queryIndeces,
             bool querySourceRequiresTracking)
         {
             Check.NotNull(querySource, nameof(querySource));

@@ -226,6 +226,7 @@ namespace Microsoft.Data.Entity.Query
             var querySourceTracingExpressionVisitor
                 = new QuerySourceTracingExpressionVisitor();
 
+            var navigationIndexMap = BuildNavigationIndexMap(includeSpecifications);
             foreach (var includeSpecification in includeSpecifications
                 .OrderBy(a => a.NavigationPath.First().PointsToPrincipal()))
             {
@@ -254,6 +255,7 @@ namespace Microsoft.Data.Entity.Query
                         _expression.Type.GetSequenceType(),
                         accessorLambda,
                         includeSpecification.NavigationPath,
+                        navigationIndexMap != null ? navigationIndexMap[includeSpecification] : null,
                         QuerySourceRequiresTracking(includeSpecification.QuerySource));
 
                     QueryCompilationContext
@@ -291,11 +293,19 @@ namespace Microsoft.Data.Entity.Query
             return boundNavigations.Concat(boundChainedNavigations);
         }
 
+        protected virtual Dictionary<IncludeSpecification, List<int>> BuildNavigationIndexMap(List<IncludeSpecification> includeSpecifications)
+        {
+            // template method
+
+            throw new NotImplementedException(Strings.IncludeNotImplemented);
+        }
+
         protected virtual void IncludeNavigations(
             [NotNull] IQuerySource querySource,
             [NotNull] Type resultType,
             [NotNull] LambdaExpression accessorLambda,
             [NotNull] IReadOnlyList<INavigation> navigationPath,
+            [CanBeNull] List<int> queryIndeces,
             bool querySourceRequiresTracking)
         {
             // template method
